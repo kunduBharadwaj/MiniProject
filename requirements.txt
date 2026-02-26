@@ -2,5 +2,3 @@ streamlit
 groq
 chromadb
 sentence-transformers
-tiktoken
-python-dotenv
