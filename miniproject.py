@@ -9,17 +9,19 @@ Original file is located at
 Mini Project HR Chat Bot
 """
 
-!pip install chromaDB sentence-transformers groq
+#!pip install chromaDB sentence-transformers groq
+import streamlit as st
 
 import os
-from google.colab import userdata
+#from google.colab import userdata
 from groq import Groq
 import chromadb
 from chromadb.utils import embedding_functions
 
 chroma_client = chromadb.Client()
 
-client = Groq(api_key=userdata.get('groq_api'))
+#client = Groq(api_key=userdata.get('groq_api'))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 emb_fn = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
 
@@ -467,4 +469,36 @@ def hr_bot(user_question):
     answer = completion.choices[0].message.content # Try removing and printing you will understand why we need this!
     print(f"🤖 HR Bot: {answer}\n" + "-"*40) # Cosmetic Print statement
 
-hr_bot("I want to resign?")
+#hr_bot("I want to resign?")
+
+st.title("HR Chatbot")
+
+user_question = st.text_input("Ask your HR question:")
+
+if user_question:
+    result = collection.query(query_texts=[user_question], n_results=1)
+    retrieved_content = result['documents'][0][0]
+
+    system_prompt = f"""
+    You are an HR Assistant.
+    You must answer the user's question using ONLY the provided Context below.
+    If the answer is not in the context, say "I don't know based on the handbook."
+    Do NOT invent information.
+
+    Context:
+    {retrieved_content}
+    """
+
+    completion = client.chat.completions.create(
+        model='llama-3.1-8b-instant',
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_question}
+        ],
+        temperature=0
+    )
+
+    answer = completion.choices[0].message.content
+
+    st.write("### HR Bot Answer:")
+    st.write(answer)
